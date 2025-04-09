@@ -43,7 +43,9 @@ func (pw *Visualizer) Update(t screen.Texture) {
 
 func (pw *Visualizer) run(s screen.Screen) {
 	w, err := s.NewWindow(&screen.NewWindowOptions{
-		Title: pw.Title,
+		Title:  pw.Title,
+		Width:  800,
+		Height: 800,
 	})
 	if err != nil {
 		log.Fatal("Failed to initialize the app window:", err)
@@ -114,8 +116,10 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 		log.Printf("ERROR: %s", e)
 
 	case mouse.Event:
-		if t == nil {
-			// TODO: Реалізувати реакцію на натискання кнопки миші.
+		if e.Button == mouse.ButtonLeft && e.Direction == mouse.DirPress {
+			pw.pos.Min.X = int(e.X)
+			pw.pos.Min.Y = int(e.Y)
+			pw.w.Send(paint.Event{}) 
 		}
 
 	case paint.Event:
@@ -131,12 +135,58 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 }
 
 func (pw *Visualizer) drawDefaultUI() {
-	pw.w.Fill(pw.sz.Bounds(), color.Black, draw.Src) // Фон.
+	const borderThickness = 10
 
-	// TODO: Змінити колір фону та додати відображення фігури у вашому варіанті.
+	bgColor := color.RGBA{0, 128, 0, 255}
+	shapeColor := color.RGBA{255, 255, 0, 255}
+	borderColor := color.White
 
-	// Малювання білої рамки.
-	for _, br := range imageutil.Border(pw.sz.Bounds(), 10) {
-		pw.w.Fill(br, color.White, draw.Src)
+	pw.drawBackground(bgColor)
+	centerX, centerY := pw.getCenter()
+	pw.drawTShape(centerX, centerY, shapeColor)
+	pw.drawBorder(borderThickness, borderColor)
+}
+
+func (pw *Visualizer) drawBackground(bg color.RGBA) {
+	pw.w.Fill(pw.sz.Bounds(), bg, draw.Src)
+}
+
+func (pw *Visualizer) getCenter() (int, int) {
+	if pw.pos.Min.X != 0 && pw.pos.Min.Y != 0 {
+		return pw.pos.Min.X, pw.pos.Min.Y
+	}
+	return pw.sz.WidthPx / 2, pw.sz.HeightPx / 2
+}
+
+func (pw *Visualizer) drawTShape(centerX, centerY int, shapeColor color.RGBA) {
+	maxWidth := pw.sz.WidthPx / 2
+	maxHeight := pw.sz.HeightPx / 2
+
+	tWidthTop := int(float64(maxWidth) * 0.7)
+	tHeightTop := int(float64(maxHeight) * 0.2)
+	tWidthVert := int(float64(maxWidth) * 0.2)
+	tHeightVert := int(float64(maxHeight) * 0.7)
+
+	topRect := image.Rect(
+		centerX - tWidthTop/2,
+		centerY - tHeightVert/2,
+		centerX + tWidthTop/2,
+		centerY - tHeightVert/2 + tHeightTop,
+	)
+
+	vertRect := image.Rect(
+		centerX - tWidthVert/2,
+		centerY - tHeightVert/2,
+		centerX + tWidthVert/2,
+		centerY + tHeightVert/2,
+	)
+
+	pw.w.Fill(vertRect, shapeColor, draw.Src)
+	pw.w.Fill(topRect, shapeColor, draw.Src)
+}
+
+func (pw *Visualizer) drawBorder(thickness int, borderColor color.Color) {
+	for _, br := range imageutil.Border(pw.sz.Bounds(), thickness) {
+		pw.w.Fill(br, borderColor, draw.Src)
 	}
 }
