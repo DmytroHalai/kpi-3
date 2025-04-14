@@ -65,25 +65,33 @@ func (l *Loop) Start(s screen.Screen) {
 
 // Post додає нову операцію у внутрішню чергу.
 func (l *Loop) Post(op Operation) {
-	if update := op.Do(l.next); update {
-		l.Receiver.Update(l.next)
-		l.next, l.prev = l.prev, l.next
-	}
+	l.mq.push(op)
 }
 
 // StopAndWait сигналізує про необхідність завершити цикл та блокується до моменту його повної зупинки.
 func (l *Loop) StopAndWait() {
+	close(l.stop)
+	<-l.stopped
 }
 
 // TODO: Реалізувати чергу подій.
-type messageQueue struct{}
+type messageQueue struct {
+	ops []Operation
+}
 
-func (mq *messageQueue) push(op Operation) {}
+func (mq *messageQueue) push(op Operation) {
+	mq.ops = append(mq.ops, op)
+}
 
 func (mq *messageQueue) pull() Operation {
-	return nil
+	if len(mq.ops) == 0 {
+		return nil
+	}
+	op := mq.ops[0]
+	mq.ops = mq.ops[1:]
+	return op
 }
 
 func (mq *messageQueue) empty() bool {
-	return false
+	return len(mq.ops) == 0
 }
