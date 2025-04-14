@@ -2,6 +2,7 @@ package painter
 
 import (
 	"image"
+	"time"
 
 	"golang.org/x/exp/shiny/screen"
 )
@@ -21,6 +22,7 @@ type Loop struct {
 	mq messageQueue
 
 	stop    chan struct{}
+	stopped chan struct{}
 	stopReq bool
 }
 
@@ -32,6 +34,33 @@ func (l *Loop) Start(s screen.Screen) {
 	l.prev, _ = s.NewTexture(size)
 
 	// TODO: стартувати цикл подій.
+	l.stop = make(chan struct{})
+	l.stopped = make(chan struct{})
+
+	go func() {
+		defer close(l.stopped)
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-l.stop:
+				return
+			case <-ticker.C:
+				if l.mq.empty() {
+					continue
+				}
+				op := l.mq.pull()
+				if op == nil {
+					continue
+				}
+				if op.Do(l.next) {
+					l.Receiver.Update(l.next)
+					l.next, l.prev = l.prev, l.next
+				}
+			}
+		}
+	}()
 }
 
 // Post додає нову операцію у внутрішню чергу.
