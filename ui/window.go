@@ -137,8 +137,8 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 func (pw *Visualizer) drawDefaultUI() {
 	const borderThickness = 10
 
-	bgColor := color.RGBA{0, 128, 0, 255}
-	shapeColor := color.RGBA{255, 255, 0, 255}
+	bgColor := color.RGBA{G: 128, A: 255}
+	shapeColor := color.RGBA{R: 255, G: 255, A: 255}
 	borderColor := color.White
 
 	pw.drawBackground(bgColor)

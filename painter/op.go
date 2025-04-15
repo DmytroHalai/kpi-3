@@ -60,7 +60,7 @@ func (f OperationFunc) Do(t screen.Texture) bool {
 func render(scene *Scene, t screen.Texture) {
 	bgColor := scene.BgColor
 	if bgColor == nil {
-		bgColor = color.White
+		bgColor = color.RGBA{G: 128, A: 255}
 	}
 	t.Fill(t.Bounds(), bgColor, screen.Src)
 	rect := scene.Rect
