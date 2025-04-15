@@ -14,22 +14,21 @@ import (
 type Parser struct {
 }
 
-func (p *Parser) Parse(in io.Reader) ([]painter.Operation, error) {
+func (p *Parser) Parse(in io.Reader, scene *painter.Scene) ([]painter.Operation, error) {
 	var res []painter.Operation
 
 	scanner := bufio.NewScanner(in)
 	scanner.Split(bufio.ScanLines)
 
-
 	for scanner.Scan() {
 		commandLine := strings.TrimSpace(scanner.Text())
 		if commandLine == "" {
-			continue 
+			continue
 		}
 
 		parts := strings.Fields(commandLine)
 		if len(parts) == 0 {
-			continue 
+			continue
 		}
 
 		instruction := parts[0]
@@ -40,13 +39,13 @@ func (p *Parser) Parse(in io.Reader) ([]painter.Operation, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("white command takes no arguments, got %d", len(args))
 			}
-			res = append(res, painter.OperationFunc(painter.WhiteFill))
+			res = append(res, painter.WhiteFill(scene))
 
 		case "green":
 			if len(args) != 0 {
 				return nil, fmt.Errorf("green command takes no arguments, got %d", len(args))
 			}
-			res = append(res, painter.OperationFunc(painter.GreenFill))
+			res = append(res, painter.GreenFill(scene))
 
 		case "update":
 			if len(args) != 0 {
@@ -74,7 +73,7 @@ func (p *Parser) Parse(in io.Reader) ([]painter.Operation, error) {
 			if err != nil {
 				return nil, fmt.Errorf("bgrect y2 invalid: %v", err)
 			}
-			res = append(res, painter.BgrectOp{X1: x1, Y1: y1, X2: x2, Y2: y2})
+			res = append(res, painter.BgRectOp(scene, int(x1), int(y1), int(x2), int(y2)))
 
 		case "figure":
 			if len(args) != 2 {
@@ -88,7 +87,7 @@ func (p *Parser) Parse(in io.Reader) ([]painter.Operation, error) {
 			if err != nil {
 				return nil, fmt.Errorf("figure y invalid: %v", err)
 			}
-			res = append(res, painter.FigureOp{X: x, Y: y})
+			res = append(res, painter.ShapeOp(scene, int(x), int(y)))
 
 		case "move":
 			if len(args) != 2 {
@@ -102,13 +101,13 @@ func (p *Parser) Parse(in io.Reader) ([]painter.Operation, error) {
 			if err != nil {
 				return nil, fmt.Errorf("move y invalid: %v", err)
 			}
-			res = append(res, painter.MoveOp{X: x, Y: y})
+			res = append(res, painter.MoveOp(scene, int(x), int(y)))
 
 		case "reset":
 			if len(args) != 0 {
 				return nil, fmt.Errorf("reset command takes no arguments, got %d", len(args))
 			}
-			res = append(res, painter.ResetOp)
+			res = append(res, painter.ResetOp(scene))
 
 		default:
 			return nil, fmt.Errorf("unknown command: %s", instruction)
