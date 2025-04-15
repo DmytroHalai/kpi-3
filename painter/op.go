@@ -1,6 +1,8 @@
 package painter
 
 import (
+	"github.com/DmytroHalai/kpi-3/ui"
+	"image"
 	"image/color"
 
 	"golang.org/x/exp/shiny/screen"
@@ -10,6 +12,24 @@ import (
 type Operation interface {
 	// Do виконує зміну операції, повертаючи true, якщо текстура вважається готовою для відображення.
 	Do(t screen.Texture) (ready bool)
+}
+
+type Shape struct {
+	X int
+	Y int
+}
+
+type Rectangle struct {
+	X1 int
+	Y1 int
+	X2 int
+	Y2 int
+}
+
+type Scene struct {
+	BgColor color.Color
+	Rect    *Rectangle
+	Shapes  []Shape
 }
 
 // OperationList групує список операції в одну.
@@ -37,12 +57,65 @@ func (f OperationFunc) Do(t screen.Texture) bool {
 	return false
 }
 
-// WhiteFill зафарбовує тестуру у білий колір. Може бути викоистана як Operation через OperationFunc(WhiteFill).
-func WhiteFill(t screen.Texture) {
-	t.Fill(t.Bounds(), color.White, screen.Src)
+func render(scene *Scene, t screen.Texture) {
+	bgColor := scene.BgColor
+	if bgColor == nil {
+		bgColor = color.White
+	}
+	t.Fill(t.Bounds(), bgColor, screen.Src)
+	rect := scene.Rect
+	if rect != nil {
+		t.Fill(image.Rect(rect.X1, rect.Y1, rect.X2, rect.Y2), color.Black, screen.Src)
+	}
+	for _, shape := range scene.Shapes {
+		ui.DrawTShape(t, shape.X, shape.Y, t.Bounds(), color.RGBA{255, 255, 0, 255})
+	}
 }
 
-// GreenFill зафарбовує тестуру у зелений колір. Може бути викоистана як Operation через OperationFunc(GreenFill).
-func GreenFill(t screen.Texture) {
-	t.Fill(t.Bounds(), color.RGBA{G: 0xff, A: 0xff}, screen.Src)
+func WhiteFill(scene *Scene) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		scene.BgColor = color.White
+		render(scene, t)
+	})
+}
+
+func GreenFill(scene *Scene) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		scene.BgColor = color.RGBA{G: 255, A: 1}
+		render(scene, t)
+	})
+}
+
+func BgRectOp(scene *Scene, x1, y1, x2, y2 int) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		scene.Rect = &Rectangle{x1, y1, x2, y2}
+		render(scene, t)
+	})
+}
+
+func ShapeOp(scene *Scene, x1, x2 int) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		scene.Shapes = append(scene.Shapes, Shape{x1, x2})
+		render(scene, t)
+	})
+}
+
+func MoveOp(scene *Scene, x, y int) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		newShapes := make([]Shape, len(scene.Shapes))
+		for i := range scene.Shapes {
+			newShapes[i] = Shape{x, y}
+		}
+		scene.Shapes = newShapes
+		render(scene, t)
+	})
+}
+
+func ResetOp(scene *Scene) Operation {
+	return OperationFunc(func(t screen.Texture) {
+		scene.BgColor = color.White
+		scene.Rect = nil
+		scene.Shapes = nil
+		render(scene, t)
+	})
 }

@@ -119,7 +119,7 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 		if e.Button == mouse.ButtonLeft && e.Direction == mouse.DirPress {
 			pw.pos.Min.X = int(e.X)
 			pw.pos.Min.Y = int(e.Y)
-			pw.w.Send(paint.Event{}) 
+			pw.w.Send(paint.Event{})
 		}
 
 	case paint.Event:
@@ -168,17 +168,17 @@ func (pw *Visualizer) drawTShape(centerX, centerY int, shapeColor color.RGBA) {
 	tHeightVert := int(float64(maxHeight) * 0.7)
 
 	topRect := image.Rect(
-		centerX - tWidthTop/2,
-		centerY - tHeightVert/2,
-		centerX + tWidthTop/2,
-		centerY - tHeightVert/2 + tHeightTop,
+		centerX-tWidthTop/2,
+		centerY-tHeightVert/2,
+		centerX+tWidthTop/2,
+		centerY-tHeightVert/2+tHeightTop,
 	)
 
 	vertRect := image.Rect(
-		centerX - tWidthVert/2,
-		centerY - tHeightVert/2,
-		centerX + tWidthVert/2,
-		centerY + tHeightVert/2,
+		centerX-tWidthVert/2,
+		centerY-tHeightVert/2,
+		centerX+tWidthVert/2,
+		centerY+tHeightVert/2,
 	)
 
 	pw.w.Fill(vertRect, shapeColor, draw.Src)
@@ -189,4 +189,32 @@ func (pw *Visualizer) drawBorder(thickness int, borderColor color.Color) {
 	for _, br := range imageutil.Border(pw.sz.Bounds(), thickness) {
 		pw.w.Fill(br, borderColor, draw.Src)
 	}
+}
+
+// DrawTShape малює фігуру “T” в центрі координат (cx, cy).
+func DrawTShape(t screen.Texture, cx, cy int, area image.Rectangle, shapeColor color.Color) {
+	maxWidth := area.Dx() / 2
+	maxHeight := area.Dy() / 2
+
+	tWidthTop := int(float64(maxWidth) * 0.7)
+	tHeightTop := int(float64(maxHeight) * 0.2)
+	tWidthVert := int(float64(maxWidth) * 0.2)
+	tHeightVert := int(float64(maxHeight) * 0.7)
+
+	topRect := image.Rect(
+		cx-tWidthTop/2,
+		cy-tHeightVert/2,
+		cx+tWidthTop/2,
+		cy-tHeightVert/2+tHeightTop,
+	)
+
+	vertRect := image.Rect(
+		cx-tWidthVert/2,
+		cy-tHeightVert/2,
+		cx+tWidthVert/2,
+		cy+tHeightVert/2,
+	)
+
+	t.Fill(vertRect, shapeColor, screen.Src)
+	t.Fill(topRect, shapeColor, screen.Src)
 }
