@@ -1,9 +1,10 @@
 package painter
 
 import (
-	"github.com/DmytroHalai/kpi-3/ui"
 	"image"
 	"image/color"
+
+	"github.com/DmytroHalai/kpi-3/ui"
 
 	"golang.org/x/exp/shiny/screen"
 )
@@ -81,7 +82,7 @@ func WhiteFill(scene *Scene) Operation {
 
 func GreenFill(scene *Scene) Operation {
 	return OperationFunc(func(t screen.Texture) {
-		scene.BgColor = color.RGBA{G: 255, A: 1}
+		scene.BgColor = color.RGBA{G: 128, A: 255}
 		render(scene, t)
 	})
 }
