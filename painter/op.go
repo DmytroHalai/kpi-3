@@ -102,6 +102,10 @@ func ShapeOp(scene *Scene, x1, x2 int) Operation {
 
 func MoveOp(scene *Scene, x, y int) Operation {
 	return OperationFunc(func(t screen.Texture) {
+		if len(scene.Shapes) == 0 {
+			ShapeOp(scene, x, y)
+			render(scene, t)
+		}
 		newShapes := make([]Shape, len(scene.Shapes))
 		for i := range scene.Shapes {
 			newShapes[i] = Shape{x, y}

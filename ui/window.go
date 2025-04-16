@@ -32,8 +32,8 @@ type Visualizer struct {
 func (pw *Visualizer) Main() {
 	pw.tx = make(chan screen.Texture)
 	pw.done = make(chan struct{})
-	pw.pos.Max.X = 200
-	pw.pos.Max.Y = 200
+	pw.pos.Max.X = 1
+	pw.pos.Max.Y = 1
 	driver.Main(pw.run)
 }
 
@@ -109,8 +109,12 @@ func detectTerminate(e any) bool {
 func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 	switch e := e.(type) {
 
-	case size.Event: // Оновлення даних про розмір вікна.
-		pw.sz = e
+	case size.Event:
+		if pw.sz == (size.Event{}) {
+			// Зберігаємо розмір лише один раз
+			pw.sz = e
+		}
+		return
 
 	case error:
 		log.Printf("ERROR: %s", e)

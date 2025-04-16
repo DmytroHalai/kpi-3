@@ -13,6 +13,8 @@ import (
 type Parser struct {
 }
 
+const scale = 400
+
 func (p *Parser) Parse(in io.Reader, scene *painter.Scene) ([]painter.Operation, error) {
 	var res []painter.Operation
 	scanner := bufio.NewScanner(in)
@@ -61,7 +63,7 @@ func (p *Parser) parseCommand(cmd string, args []string, scene *painter.Scene) (
 		if err != nil {
 			return nil, fmt.Errorf("bgrect arg error: %v", err)
 		}
-		return []painter.Operation{painter.BgRectOp(scene, ints[0], ints[1], ints[2], ints[3])}, nil
+		return []painter.Operation{painter.BgRectOp(scene, int(ints[0]*scale), int(ints[1]*scale), int(ints[2]*scale), int(ints[3]*scale))}, nil
 
 	case "figure":
 		if len(args) != 2 {
@@ -71,7 +73,7 @@ func (p *Parser) parseCommand(cmd string, args []string, scene *painter.Scene) (
 		if err != nil {
 			return nil, fmt.Errorf("figure arg error: %v", err)
 		}
-		return []painter.Operation{painter.ShapeOp(scene, ints[0], ints[1])}, nil
+		return []painter.Operation{painter.ShapeOp(scene, int(ints[0]*scale), int(ints[1]*scale))}, nil
 
 	case "move":
 		if len(args) != 2 {
@@ -81,7 +83,7 @@ func (p *Parser) parseCommand(cmd string, args []string, scene *painter.Scene) (
 		if err != nil {
 			return nil, fmt.Errorf("move arg error: %v", err)
 		}
-		return []painter.Operation{painter.MoveOp(scene, ints[0], ints[1])}, nil
+		return []painter.Operation{painter.MoveOp(scene, int(ints[0]*scale), int(ints[1]*scale))}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd)
@@ -103,14 +105,14 @@ func (p *Parser) simpleOp(cmd string, scene *painter.Scene) painter.Operation {
 	}
 }
 
-func parseArgsAsInts(args []string) ([]int, error) {
-	ints := make([]int, len(args))
+func parseArgsAsInts(args []string) ([]float32, error) {
+	ints := make([]float32, len(args))
 	for i, arg := range args {
 		val, err := strconv.ParseFloat(arg, 64)
 		if err != nil {
 			return nil, fmt.Errorf("arg %d invalid: %v", i+1, err)
 		}
-		ints[i] = int(val)
+		ints[i] = float32(val)
 	}
 	return ints, nil
 }
