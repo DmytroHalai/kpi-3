@@ -13,35 +13,59 @@ import (
 
 var testSize = image.Pt(400, 400)
 
-func TestLoop_Behavior(t *testing.T) {
-	var (
-		l  Loop
-		tr testReceiver
-	)
+func TestLoop_UpdatesTexture(t *testing.T) {
+	var l Loop
+	var tr testReceiver
+	scene := &Scene{}
 	l.Receiver = &tr
-
-	var callOrder []string
-
-	// Стартуємо цикл
 	l.Start(mockScreen{})
 
-	// Постимо операції, що оновлюють фон
-	scene := &Scene{}
-
-	l.Post(OperationFunc(func(tx screen.Texture) {
-		callOrder = append(callOrder, "white fill")
-		WhiteFill(scene).Do(tx)
-	}))
-
-	l.Post(OperationFunc(func(tx screen.Texture) {
-		callOrder = append(callOrder, "green fill")
-		GreenFill(scene).Do(tx)
-	}))
-
-	// Операція, яка не змінює текстуру, але просить її оновити
+	l.Post(WhiteFill(scene))
 	l.Post(UpdateOp)
 
-	// Операції з вкладеними Post
+	time.Sleep(50 * time.Millisecond)
+	l.StopAndWait()
+
+	if tr.lastTexture == nil {
+		t.Fatal("Texture was not updated")
+	}
+	mt, ok := tr.lastTexture.(*mockTexture)
+	if !ok {
+		t.Fatal("Unexpected texture type:", tr.lastTexture)
+	}
+	if len(mt.Colors) == 0 || mt.Colors[0] != color.White {
+		t.Errorf("Expected white fill, got: %+v", mt.Colors)
+	}
+}
+
+func TestLoop_ProcessesMultipleOps(t *testing.T) {
+	var l Loop
+	var tr testReceiver
+	scene := &Scene{}
+	l.Receiver = &tr
+	l.Start(mockScreen{})
+
+	l.Post(WhiteFill(scene))
+	l.Post(GreenFill(scene))
+	l.Post(UpdateOp)
+
+	time.Sleep(50 * time.Millisecond)
+	l.StopAndWait()
+
+	mt := tr.lastTexture.(*mockTexture)
+	if len(mt.Colors) < 2 {
+		t.Errorf("Expected at least 2 fills, got: %+v", mt.Colors)
+	}
+}
+
+func TestLoop_NestedPost(t *testing.T) {
+	var l Loop
+	var tr testReceiver
+	callOrder := []string{}
+
+	l.Receiver = &tr
+	l.Start(mockScreen{})
+
 	l.Post(OperationFunc(func(screen.Texture) {
 		callOrder = append(callOrder, "op 1")
 		l.Post(OperationFunc(func(screen.Texture) {
@@ -51,28 +75,35 @@ func TestLoop_Behavior(t *testing.T) {
 	l.Post(OperationFunc(func(screen.Texture) {
 		callOrder = append(callOrder, "op 3")
 	}))
-	time.Sleep(100 * time.Millisecond) // щоб Loop встиг обробиит op 2
 
+	time.Sleep(100 * time.Millisecond)
 	l.StopAndWait()
 
-	// Перевірка, що текстура була оновлена
-	if tr.lastTexture == nil {
-		t.Fatal("Texture was not updated")
+	expected := []string{"op 1", "op 3", "op 2"}
+	if !reflect.DeepEqual(callOrder, expected) {
+		t.Errorf("Unexpected call order.\nExpected: %v\nGot: %v", expected, callOrder)
 	}
-	mt, ok := tr.lastTexture.(*mockTexture)
-	if !ok {
-		t.Fatal("Unexpected texture type:", tr.lastTexture)
-	}
-	if mt.Colors[0] != color.White {
-		t.Error("First fill color is not white:", mt.Colors)
-	}
-	if len(mt.Colors) < 2 {
-		t.Error("Expected at least 2 colors filled, got:", mt.Colors)
-	}
+}
 
-	expectedOrder := []string{"white fill", "green fill", "op 1", "op 3", "op 2"}
-	if !reflect.DeepEqual(callOrder, expectedOrder) {
-		t.Errorf("Unexpected call order.\nExpected: %v\nGot: %v", expectedOrder, callOrder)
+func TestLoop_StopBlocksUntilDone(t *testing.T) {
+	var l Loop
+	var tr testReceiver
+	l.Receiver = &tr
+	l.Start(mockScreen{})
+
+	done := make(chan bool)
+	go func() {
+		l.Post(UpdateOp)
+		time.Sleep(20 * time.Millisecond)
+		l.StopAndWait()
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// ok
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("StopAndWait did not return in time")
 	}
 }
 

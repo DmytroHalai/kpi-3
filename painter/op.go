@@ -68,7 +68,7 @@ func render(scene *Scene, t screen.Texture) {
 		t.Fill(image.Rect(rect.X1, rect.Y1, rect.X2, rect.Y2), color.Black, screen.Src)
 	}
 	for _, shape := range scene.Shapes {
-		ui.DrawTShape(t, shape.X, shape.Y, t.Bounds(), color.RGBA{255, 255, 0, 255})
+		ui.DrawTShape(t, shape.X, shape.Y, t.Bounds(), color.RGBA{R: 255, G: 255, A: 255})
 	}
 }
 
