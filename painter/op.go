@@ -117,7 +117,7 @@ func MoveOp(scene *Scene, x, y int) Operation {
 
 func ResetOp(scene *Scene) Operation {
 	return OperationFunc(func(t screen.Texture) {
-		scene.BgColor = color.White
+		scene.BgColor = color.Black
 		scene.Rect = nil
 		scene.Shapes = nil
 		render(scene, t)

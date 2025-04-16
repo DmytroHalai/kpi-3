@@ -16,11 +16,8 @@ func main() {
 		opLoop painter.Loop // Цикл обробки команд.
 		parser lang.Parser  // Парсер команд.
 		scene  painter.Scene
-		//scene painter.Scene{}
-
 	)
 
-	//pv.Debug = true
 	pv.Title = "Simple painter"
 
 	pv.OnScreenReady = opLoop.Start
