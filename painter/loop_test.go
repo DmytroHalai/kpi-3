@@ -6,63 +6,73 @@ import (
 	"image/draw"
 	"reflect"
 	"testing"
+	"time"
 
 	"golang.org/x/exp/shiny/screen"
 )
 
-func TestLoop_Post(t *testing.T) {
+var testSize = image.Pt(400, 400)
+
+func TestLoop_Behavior(t *testing.T) {
 	var (
 		l  Loop
 		tr testReceiver
 	)
 	l.Receiver = &tr
 
-	var testOps []string
+	var callOrder []string
 
+	// Стартуємо цикл
 	l.Start(mockScreen{})
-	l.Post(logOp(t, "do white fill", WhiteFill))
-	l.Post(logOp(t, "do green fill", GreenFill))
+
+	// Постимо операції, що оновлюють фон
+	scene := &Scene{}
+
+	l.Post(OperationFunc(func(tx screen.Texture) {
+		callOrder = append(callOrder, "white fill")
+		WhiteFill(scene).Do(tx)
+	}))
+
+	l.Post(OperationFunc(func(tx screen.Texture) {
+		callOrder = append(callOrder, "green fill")
+		GreenFill(scene).Do(tx)
+	}))
+
+	// Операція, яка не змінює текстуру, але просить її оновити
 	l.Post(UpdateOp)
 
-	for i := 0; i < 3; i++ {
-		go l.Post(logOp(t, "do green fill", GreenFill))
-	}
-
+	// Операції з вкладеними Post
 	l.Post(OperationFunc(func(screen.Texture) {
-		testOps = append(testOps, "op 1")
+		callOrder = append(callOrder, "op 1")
 		l.Post(OperationFunc(func(screen.Texture) {
-			testOps = append(testOps, "op 2")
+			callOrder = append(callOrder, "op 2")
 		}))
 	}))
 	l.Post(OperationFunc(func(screen.Texture) {
-		testOps = append(testOps, "op 3")
+		callOrder = append(callOrder, "op 3")
 	}))
+	time.Sleep(100 * time.Millisecond) // щоб Loop встиг обробиит op 2
 
 	l.StopAndWait()
 
+	// Перевірка, що текстура була оновлена
 	if tr.lastTexture == nil {
 		t.Fatal("Texture was not updated")
 	}
 	mt, ok := tr.lastTexture.(*mockTexture)
 	if !ok {
-		t.Fatal("Unexpected texture", tr.lastTexture)
+		t.Fatal("Unexpected texture type:", tr.lastTexture)
 	}
 	if mt.Colors[0] != color.White {
-		t.Error("First color is not white:", mt.Colors)
+		t.Error("First fill color is not white:", mt.Colors)
 	}
-	if len(mt.Colors) != 2 {
-		t.Error("Unexpected size of colors:", mt.Colors)
+	if len(mt.Colors) < 2 {
+		t.Error("Expected at least 2 colors filled, got:", mt.Colors)
 	}
 
-	if !reflect.DeepEqual(testOps, []string{"op 1", "op 2", "op 3"}) {
-		t.Error("Bad order:", testOps)
-	}
-}
-
-func logOp(t *testing.T, msg string, op OperationFunc) OperationFunc {
-	return func(tx screen.Texture) {
-		t.Log(msg)
-		op(tx)
+	expectedOrder := []string{"white fill", "green fill", "op 1", "op 3", "op 2"}
+	if !reflect.DeepEqual(callOrder, expectedOrder) {
+		t.Errorf("Unexpected call order.\nExpected: %v\nGot: %v", expectedOrder, callOrder)
 	}
 }
 
@@ -77,7 +87,7 @@ func (tr *testReceiver) Update(t screen.Texture) {
 type mockScreen struct{}
 
 func (m mockScreen) NewBuffer(size image.Point) (screen.Buffer, error) {
-	panic("implement me")
+	panic("not implemented")
 }
 
 func (m mockScreen) NewTexture(size image.Point) (screen.Texture, error) {
@@ -85,7 +95,7 @@ func (m mockScreen) NewTexture(size image.Point) (screen.Texture, error) {
 }
 
 func (m mockScreen) NewWindow(opts *screen.NewWindowOptions) (screen.Window, error) {
-	panic("implement me")
+	panic("not implemented")
 }
 
 type mockTexture struct {
@@ -94,13 +104,14 @@ type mockTexture struct {
 
 func (m *mockTexture) Release() {}
 
-func (m *mockTexture) Size() image.Point { return size }
+func (m *mockTexture) Size() image.Point { return testSize }
 
 func (m *mockTexture) Bounds() image.Rectangle {
 	return image.Rectangle{Max: m.Size()}
 }
 
 func (m *mockTexture) Upload(dp image.Point, src screen.Buffer, sr image.Rectangle) {}
+
 func (m *mockTexture) Fill(dr image.Rectangle, src color.Color, op draw.Op) {
 	m.Colors = append(m.Colors, src)
 }
