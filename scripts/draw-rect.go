@@ -1,7 +1,7 @@
 //go:build ignoretest
 // +build ignoretest
 
-package scripts
+package main
 
 import (
 	"bytes"
