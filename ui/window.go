@@ -111,7 +111,6 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 
 	case size.Event:
 		if pw.sz == (size.Event{}) {
-			// Зберігаємо розмір лише один раз
 			pw.sz = e
 		}
 		return
@@ -195,7 +194,6 @@ func (pw *Visualizer) drawBorder(thickness int, borderColor color.Color) {
 	}
 }
 
-// DrawTShape малює фігуру “T” в центрі координат (cx, cy).
 func DrawTShape(t screen.Texture, cx, cy int, area image.Rectangle, shapeColor color.Color) {
 	maxWidth := area.Dx() / 2
 	maxHeight := area.Dy() / 2
